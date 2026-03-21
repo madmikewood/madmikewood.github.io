@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pathology Note Generator v11</title>
+    <title>Pathology Note Generator v13</title>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 20px; background: #f0f2f5; color: #1c1e21; }
         .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; border: 1px solid #e1e8ed; position: relative; }
@@ -53,12 +53,55 @@
     const dataStore = { FBC: [], CHEM: [], VBG: [] };
     const mappings = { FBC: {}, CHEM: {}, VBG: {} };
     const patientNames = { FBC: "", CHEM: "", VBG: "" };
-    let patientMeta = { age: 0, sex: 'male' };
+    let patientMeta = { age: 0, sex: 'm' };
 
+    // Reference ranges updated to reflect provided images
     const ranges = {
-        'pH': [7.31, 7.41], 'pCO2': [41, 51], 'HCO3': [22, 28], 'Na': [135, 145], 'K': [3.5, 5.2], 'Cl': [98, 107], 
-        'Hb': [130, 175], 'Plt': [150, 400], 'WCC': [4.0, 11.0], 'Neut': [2.0, 7.5], 'Lymph': [1.0, 4.0],
-        'glucose': [4.0, 7.8], 'lactate': [0.5, 2.2], 'Cr': [60, 110], 'Mg': [0.7, 1.1]
+        // FBC (From image 2)
+        'Hb_f': [110, 165],
+        'Hb_m': [120, 180], // User defined
+        'WCC': [3.5, 11.0],
+        'Plt': [140, 400],
+        'HCT': [0.34, 0.47],
+        'MCH': [27.5, 34.5],
+        'RCC': [3.40, 5.20],
+        'MCV': [80, 100],
+        'Neut': [2.00, 8.00],
+        'Lymph': [1.00, 4.00],
+        'Mono': [0.10, 1.00],
+        'Eosin': [0.00, 0.40],
+        'Baso': [0.00, 0.20],
+
+        // CHEM20 (From image 1)
+        'Na': [135, 145],
+        'K': [3.5, 5.2],
+        'Cl': [95, 110],
+        'HCO3': [22, 32],
+        'anion gap': [4, 13],
+        'glucose': [3.0, 7.8],
+        'urea': [2.9, 8.2],
+        'Cr': [36, 73],
+        'urate': [0.15, 0.45],
+        'protein': [60, 80],
+        'albumin': [35, 50],
+        'globulin': [25, 45],
+        'Bili': [0, 20],
+        'Bili(conj)': [0, 4],
+        'ALP': [30, 110],
+        'GGT': [0, 38],
+        'ALT': [0, 34],
+        'AST': [0, 31],
+        'LD': [120, 250],
+        'Mg': [0.70, 1.10],
+        'PO4': [0.75, 1.50],
+        'Ca': [2.10, 2.60],
+        'Corr Ca': [2.10, 2.60],
+        'OSM': [275, 295],
+        
+        // VBG Defaults
+        'pH': [7.31, 7.41],
+        'pCO2': [41, 51],
+        'lactate': [0.5, 2.2]
     };
 
     const config = {
@@ -122,7 +165,7 @@
     async function smartPaste() {
         try {
             const text = await navigator.clipboard.readText();
-            let target = text.includes("Full Blood Count") ? "FBC" : text.includes("Chemistry 20") ? "CHEM" : text.includes("Gas") ? "VBG" : null;
+            let target = text.includes("Full Blood Count") ? "FBC" : text.includes("Chemistry 20") ? "CHEM" : text.includes("B.Gas") ? "VBG" : null;
             if (!target) return alert("Unrecognized Table Type.");
             
             document.getElementById('input' + target).value = text;
@@ -133,37 +176,25 @@
             const ageMatch = text.match(/(\d+)\s*years/i);
             const sexMatch = text.match(/Male|Female/i);
             if (ageMatch) patientMeta.age = parseInt(ageMatch[1]);
-            if (sexMatch) patientMeta.sex = sexMatch[0].toLowerCase();
+            if (sexMatch) patientMeta.sex = (sexMatch[0].toLowerCase() === 'male') ? 'm' : 'f';
 
             checkPatientMismatch();
             parseData(target);
-        } catch (err) {
-            alert("Clipboard permission denied.");
-        }
+        } catch (err) { alert("Clipboard permission denied."); }
     }
 
-    function calculateEGFR(cr) {
-        if (!cr || isNaN(cr) || cr <= 0) return "x";
-        
-        // CKD-EPI 2021 Equation Constants
-        const κ = (patientMeta.sex === 'female') ? 0.7 : 0.9;
-        let α;
-        
-        if (patientMeta.sex === 'female') {
-            α = (cr <= 62) ? -0.241 : -1.200;
+    function calculateEGFR(cr_umol) {
+        if (!cr_umol || isNaN(cr_umol) || cr_umol <= 0) return "x";
+        const kappa = (patientMeta.sex === 'f') ? 0.7 : 0.9;
+        const multiplier = (patientMeta.sex === 'f') ? 1.018 : 1.159;
+        let alpha;
+        if (patientMeta.sex === 'f') {
+            alpha = (cr_umol > 62) ? -1.209 : -0.329;
         } else {
-            α = (cr <= 80) ? -0.302 : -1.200;
+            alpha = (cr_umol > 80) ? -1.209 : -0.411;
         }
-
-        const genderFactor = (patientMeta.sex === 'female') ? 1.012 : 1;
-        
-        // Equation: 142 * min(Scr/κ, 1)^α * max(Scr/κ, 1)^-1.200 * 0.9938^Age * [1.012 if female]
-        // Note: Scr must be in mg/dL. Convert μmol/L to mg/dL by dividing by 88.4
-        const scr_mgdl = cr / 88.4;
-        const ratio = scr_mgdl / κ;
-        
-        const egfr = 142 * Math.pow(Math.min(ratio, 1), α) * Math.pow(Math.max(ratio, 1), -1.200) * Math.pow(0.9938, patientMeta.age) * genderFactor;
-
+        const cr_mgdl = cr_umol * 0.0113;
+        const egfr = 144 * Math.pow((cr_mgdl / kappa), alpha) * Math.pow(0.993, patientMeta.age) * multiplier;
         const rounded = Math.round(egfr);
         return rounded > 90 ? ">90" : rounded;
     }
@@ -201,8 +232,15 @@
     function getFlaggedVal(val, key) {
         if (!val || val === "x" || val === "" || val === ">90") return val;
         const clean = parseFloat(val.toString().replace(/[<>]/g, ''));
-        const k = key.replace('Corr ', ''); 
-        if (ranges[k] && (clean < ranges[k][0] || clean > ranges[k][1])) return val + "*";
+        
+        let range;
+        if (key === 'Hb') {
+            range = (patientMeta.sex === 'm') ? ranges['Hb_m'] : ranges['Hb_f'];
+        } else {
+            range = ranges[key];
+        }
+
+        if (range && (clean < range[0] || clean > range[1])) return val + "*";
         return val;
     }
 
@@ -242,10 +280,7 @@
         checkPatientMismatch(); updateSummary();
     }
     function clearAll() { ['FBC', 'CHEM', 'VBG'].forEach(clearTable); }
-    function copyResult() {
-        const text = document.getElementById('summaryOutput').innerText;
-        navigator.clipboard.writeText(text);
-    }
+    function copyResult() { navigator.clipboard.writeText(document.getElementById('summaryOutput').innerText); }
 </script>
 </body>
 </html>
