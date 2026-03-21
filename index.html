@@ -122,7 +122,7 @@
     async function smartPaste() {
         try {
             const text = await navigator.clipboard.readText();
-            let target = text.includes("Full Blood Count") ? "FBC" : text.includes("Chemistry 20") ? "CHEM" : text.includes("B.Gas") ? "VBG" : null;
+            let target = text.includes("Full Blood Count") ? "FBC" : text.includes("Chemistry 20") ? "CHEM" : text.includes("Gas") ? "VBG" : null;
             if (!target) return alert("Unrecognized Table Type.");
             
             document.getElementById('input' + target).value = text;
