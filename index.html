@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pathology Note Generator v13</title>
+    <title>Pathology Note Generator v14</title>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 20px; background: #f0f2f5; color: #1c1e21; }
         .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; border: 1px solid #e1e8ed; position: relative; }
@@ -12,23 +12,25 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #636e72; margin: 0; }
-        .main-btn { background: #0984e3; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1rem; width: 100%; margin-bottom: 15px; }
+        .main-btn { background: #0984e3; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1rem; width: 100%; margin-bottom: 15px; transition: background 0.2s; }
+        .main-btn:hover { background: #0773c5; }
         .clear-btn { background: none; border: none; color: #d63031; font-size: 0.7rem; cursor: pointer; text-decoration: underline; }
         .output-card { background: #2d3436; color: #55efc4; padding: 25px; border-radius: 12px; font-family: 'Courier New', monospace; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap; }
-        .copy-btn { background: #00b894; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; }
+        .copy-btn { background: #00b894; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; font-size: 1.1rem; }
+        .copy-btn:hover { background: #009475; }
         .param-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 5px; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #eee; }
-        .param-container label { font-size: 0.65rem; display: flex; align-items: center; gap: 3px; }
-        select { width: 100%; margin: 8px 0; padding: 5px; border-radius: 4px; border: 1px solid #ddd; }
+        .param-container label { font-size: 0.65rem; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+        select { width: 100%; margin: 8px 0; padding: 5px; border-radius: 4px; border: 1px solid #ddd; background: white; }
     </style>
 </head>
 <body>
 
-<div id="idWarning">⚠️ PATIENT NAME MISMATCH DETECTED!</div>
+<div id="idWarning">⚠️ PATIENT NAME MISMATCH DETECTED! CHECK SOURCES.</div>
 
 <div class="card">
     <div style="display: flex; gap: 10px;">
         <button class="main-btn" onclick="smartPaste()">PASTE FROM CLIPBOARD</button>
-        <button onclick="clearAll()" style="height: 50px; background:#636e72; color:white; border:none; border-radius:8px; padding: 0 15px; cursor:pointer;">Clear All</button>
+        <button onclick="clearAll()" style="height: 50px; background:#636e72; color:white; border:none; border-radius:8px; padding: 0 15px; cursor:pointer; font-weight:bold;">Clear All</button>
     </div>
     <div class="patient-info" id="patientBar">
         <div><strong>FBC:</strong> <span id="nameFBC">---</span></div>
@@ -38,15 +40,32 @@
 </div>
 
 <div class="grid">
-    <div class="card" id="cardFBC"><div class="header-row"><h2>FBC</h2> <button class="clear-btn" onclick="clearTable('FBC')">Clear</button></div><textarea id="inputFBC" readonly></textarea><select id="dateFBC" onchange="updateSummary()" style="display:none"></select><div id="paramsFBC" class="param-container"></div></div>
-    <div class="card" id="cardCHEM"><div class="header-row"><h2>CHEM20</h2> <button class="clear-btn" onclick="clearTable('CHEM')">Clear</button></div><textarea id="inputCHEM" readonly></textarea><select id="dateCHEM" onchange="updateSummary()" style="display:none"></select><div id="paramsCHEM" class="param-container"></div></div>
-    <div class="card" id="cardVBG"><div class="header-row"><h2>VBG</h2> <button class="clear-btn" onclick="clearTable('VBG')">Clear</button></div><textarea id="inputVBG" readonly></textarea><select id="dateVBG" onchange="updateSummary()" style="display:none"></select><div id="paramsVBG" class="param-container"></div></div>
+    <div class="card" id="cardFBC">
+        <div class="header-row"><h2>FBC</h2> <button class="clear-btn" onclick="clearTable('FBC')">Clear</button></div>
+        <textarea id="inputFBC" readonly style="display:none;"></textarea>
+        <select id="dateFBC" onchange="updateSummary()" style="display:none"></select>
+        <div id="paramsFBC" class="param-container"></div>
+    </div>
+
+    <div class="card" id="cardCHEM">
+        <div class="header-row"><h2>CHEM20</h2> <button class="clear-btn" onclick="clearTable('CHEM')">Clear</button></div>
+        <textarea id="inputCHEM" readonly style="display:none;"></textarea>
+        <select id="dateCHEM" onchange="updateSummary()" style="display:none"></select>
+        <div id="paramsCHEM" class="param-container"></div>
+    </div>
+
+    <div class="card" id="cardVBG">
+        <div class="header-row"><h2>VBG</h2> <button class="clear-btn" onclick="clearTable('VBG')">Clear</button></div>
+        <textarea id="inputVBG" readonly style="display:none;"></textarea>
+        <select id="dateVBG" onchange="updateSummary()" style="display:none"></select>
+        <div id="paramsVBG" class="param-container"></div>
+    </div>
 </div>
 
 <div class="card">
-    <h2>Result</h2>
-    <div id="summaryOutput" class="output-card">Waiting...</div>
-    <button class="copy-btn" onclick="copyResult()">Copy Note</button>
+    <h2>Note Preview</h2>
+    <div id="summaryOutput" class="output-card">Waiting for data paste...</div>
+    <button class="copy-btn" onclick="copyResult()">Copy Note to Clipboard</button>
 </div>
 
 <script>
@@ -55,53 +74,15 @@
     const patientNames = { FBC: "", CHEM: "", VBG: "" };
     let patientMeta = { age: 0, sex: 'm' };
 
-    // Reference ranges updated to reflect provided images
+    // Lab Reference Ranges
     const ranges = {
-        // FBC (From image 2)
-        'Hb_f': [110, 165],
-        'Hb_m': [120, 180], // User defined
-        'WCC': [3.5, 11.0],
-        'Plt': [140, 400],
-        'HCT': [0.34, 0.47],
-        'MCH': [27.5, 34.5],
-        'RCC': [3.40, 5.20],
-        'MCV': [80, 100],
-        'Neut': [2.00, 8.00],
-        'Lymph': [1.00, 4.00],
-        'Mono': [0.10, 1.00],
-        'Eosin': [0.00, 0.40],
-        'Baso': [0.00, 0.20],
-
-        // CHEM20 (From image 1)
-        'Na': [135, 145],
-        'K': [3.5, 5.2],
-        'Cl': [95, 110],
-        'HCO3': [22, 32],
-        'anion gap': [4, 13],
-        'glucose': [3.0, 7.8],
-        'urea': [2.9, 8.2],
-        'Cr': [36, 73],
-        'urate': [0.15, 0.45],
-        'protein': [60, 80],
-        'albumin': [35, 50],
-        'globulin': [25, 45],
-        'Bili': [0, 20],
-        'Bili(conj)': [0, 4],
-        'ALP': [30, 110],
-        'GGT': [0, 38],
-        'ALT': [0, 34],
-        'AST': [0, 31],
-        'LD': [120, 250],
-        'Mg': [0.70, 1.10],
-        'PO4': [0.75, 1.50],
-        'Ca': [2.10, 2.60],
-        'Corr Ca': [2.10, 2.60],
-        'OSM': [275, 295],
-        
-        // VBG Defaults
-        'pH': [7.31, 7.41],
-        'pCO2': [41, 51],
-        'lactate': [0.5, 2.2]
+        'Hb_f': [110, 165], 'Hb_m': [120, 180],
+        'WCC': [3.5, 11.0], 'Plt': [140, 400], 'HCT': [0.34, 0.47], 'MCV': [80, 100],
+        'Neut': [2.00, 8.00], 'Lymph': [1.00, 4.00], 'Mono': [0.10, 1.00], 'Eosin': [0.00, 0.40],
+        'Na': [135, 145], 'K': [3.5, 5.2], 'Cl': [95, 110], 'HCO3': [22, 32], 'anion gap': [4, 13],
+        'glucose': [3.0, 7.8], 'urea': [2.9, 8.2], 'Cr': [36, 73], 'Mg': [0.70, 1.10], 'PO4': [0.75, 1.50],
+        'Ca': [2.10, 2.60], 'Corr Ca': [2.10, 2.60], 'OSM': [275, 295],
+        'pH': [7.31, 7.41], 'pCO2': [41, 51], 'lactate': [0.5, 2.2]
     };
 
     const config = {
@@ -185,16 +166,21 @@
 
     function calculateEGFR(cr_umol) {
         if (!cr_umol || isNaN(cr_umol) || cr_umol <= 0) return "x";
+        
+        // CKD-EPI 2009 Piecewise Logic per Excel Image
         const kappa = (patientMeta.sex === 'f') ? 0.7 : 0.9;
         const multiplier = (patientMeta.sex === 'f') ? 1.018 : 1.159;
+        
         let alpha;
         if (patientMeta.sex === 'f') {
             alpha = (cr_umol > 62) ? -1.209 : -0.329;
         } else {
             alpha = (cr_umol > 80) ? -1.209 : -0.411;
         }
+
         const cr_mgdl = cr_umol * 0.0113;
         const egfr = 144 * Math.pow((cr_mgdl / kappa), alpha) * Math.pow(0.993, patientMeta.age) * multiplier;
+
         const rounded = Math.round(egfr);
         return rounded > 90 ? ">90" : rounded;
     }
@@ -237,7 +223,7 @@
         if (key === 'Hb') {
             range = (patientMeta.sex === 'm') ? ranges['Hb_m'] : ranges['Hb_f'];
         } else {
-            range = ranges[key];
+            range = ranges[key.replace('Corr ', '')];
         }
 
         if (range && (clean < range[0] || clean > range[1])) return val + "*";
@@ -248,7 +234,8 @@
         let finalNote = [];
         ['FBC', 'CHEM', 'VBG'].forEach(type => {
             if (dataStore[type].length > 0) {
-                const row = dataStore[type][document.getElementById('date' + type).value].split('\t');
+                const dateVal = document.getElementById('date' + type).value;
+                const row = dataStore[type][dateVal].split('\t');
                 const parts = [];
                 document.querySelectorAll(`.chk-${type}`).forEach(cb => {
                     if (cb.checked) {
@@ -256,8 +243,7 @@
                         let val;
                         if (item.match === 'CALC_EGFR') {
                             const crIdx = mappings[type]['Cr'];
-                            const crVal = row[crIdx] ? parseFloat(row[crIdx].trim()) : NaN;
-                            val = calculateEGFR(crVal);
+                            val = calculateEGFR(parseFloat(row[crIdx]));
                         } else {
                             val = (mappings[type][item.out] !== undefined) ? row[mappings[type][item.out]].trim() : "x";
                         }
@@ -268,7 +254,7 @@
                 finalNote.push(`- ${label}: ${parts.join(', ')}`);
             }
         });
-        document.getElementById('summaryOutput').innerText = finalNote.join('\n') || "Waiting...";
+        document.getElementById('summaryOutput').innerText = finalNote.join('\n') || "Waiting for data...";
     }
 
     function clearTable(type) {
