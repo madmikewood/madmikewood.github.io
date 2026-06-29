@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QLD Health Letterhead App</title>
+    <style>
+        /* UI FORM STYLES */
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .no-print { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 450px; z-index: 100; position: fixed; left: 20px; top: 20px; max-height: 90vh; overflow-y: auto; }
+        .no-print input, .no-print textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea#rawPaste { height: 60px; font-size: 11px; background: #fafafa; }
+        textarea#inBody { height: 180px; font-size: 13px; line-height: 1.4; border: 1px solid #0054a6; margin-bottom: 4px; }
+        
+        /* New custom title input sizing */
+        textarea.small-input { height: 50px; font-size: 13px; font-family: 'Segoe UI', sans-serif; resize: none; }
+        
+        button { width: 100%; padding: 15px; background: #0054a6; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-paste { background: #6c757d; font-size: 14px; padding: 10px; margin-bottom: 10px;}
+        
+        .align-toggle { display: flex; gap: 10px; margin: 5px 0 15px 0; }
+        .align-toggle label { flex: 1; text-align: center; padding: 8px; background: #eee; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .align-toggle input { display: none; }
+        .align-toggle input:checked + label { background: #0054a6; color: white; }
+
+        hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
+
+        /* A4 LAYOUT STYLES */
+        #cert-page { display: none; }
+
+        @media print {
+            @page { size: A4; margin: 0; }
+            .no-print { display: none; }
+            body { background: white; margin: 0; padding: 0; }
+            #cert-page { display: block; width: 210mm; height: 297mm; position: relative; color: black; overflow: hidden; }
+            .outer-border { position: absolute; top: 12mm; left: 12mm; right: 12mm; bottom: 12mm; border: 1.2pt solid black; box-sizing: border-box; display: flex; flex-direction: column; z-index: 2; }
+            .header-container { display: flex; width: 100%; height: 40mm; border-bottom: 1.2pt solid black; flex-shrink: 0; }
+            .header-left { width: 45%; height: 100%; padding: 0 2mm 2mm 2mm; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1.2pt solid black; }
+            .qld-logo { width: 90%; max-width: 65mm; object-fit: contain; }
+            
+            /* Modified title styling to support flexible multiline formatting */
+            .cert-title { font-size: 17pt; font-weight: bold; text-align: center; line-height: 1.1; margin-bottom: 2mm; }
+            
+            .hospital-name { font-size: 10.5pt; text-align: center; font-weight: 600; }
+            .header-right { width: 55%; height: 100%; padding: 2mm 6mm; box-sizing: border-box; font-size: 10.5pt; line-height: 1.6; overflow: hidden; }
+            .data-text-label { display: inline-block; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: clip; vertical-align: bottom; font-weight: bold; }
+            
+            .main-content { padding: 12mm 15mm; font-size: 13pt; line-height: 1.6; flex-grow: 1; display: flex; flex-direction: column; }
+            .main-content.center-aligned { justify-content: center; }
+            .main-content.top-aligned { justify-content: flex-start; }
+            
+            .data-text { font-weight: bold; }
+            .practitioner-container { display: flex; width: 100%; height: 32mm; border-top: 1.2pt solid black; flex-shrink: 0; }
+            .practitioner-left, .practitioner-right { padding: 3mm 6mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+            .practitioner-left { width: 60%; border-right: 1.2pt solid black; font-size: 10pt; }
+            .practitioner-right { width: 40%; font-size: 10pt; }
+            .practitioner-name { font-size: 12pt; font-weight: bold; }
+            .practitioner-details { font-size: 8.5pt; line-height: 1.2; }
+            
+            /* Added pre-wrap to the margin title text label */
+            .vertical-label { position: absolute; right: 12mm; bottom: 50mm; transform: rotate(90deg); transform-origin: bottom right; font-weight: bold; font-size: 20pt; white-space: pre-wrap; text-align: right; z-index: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h2 style="color:#0054a6; margin:0 0 5px 0; font-size: 20px;">Letterhead Generator</h2>
+    <textarea id="rawPaste" placeholder="Paste Viewer data here..."></textarea>
+    <button class="btn-paste" onclick="pasteFromClipboard()">PASTE & AUTO-FILL</button>
+    
+    <input type="text" id="inName" placeholder="Patient Full Name">
+    <div style="display:flex; gap:5px;">
+        <input type="text" id="inURN" placeholder="URN" style="flex:1">
+        <input type="text" id="inSex" placeholder="Sex" style="flex:1">
+    </div>
+    <input type="text" id="inDOB" placeholder="Date of Birth">
+    <input type="text" id="inAddr" placeholder="Patient Address">
+    
+    <!-- New Header Customization Fields -->
+    <label style="font-size:11px; font-weight:bold;">Top Left Header Title:</label>
+    <textarea id="inMainTitle" class="small-input" placeholder="e.g. HEALTH SERVICES">HEALTH&#10;SERVICES</textarea>
+
+    <label style="font-size:11px; font-weight:bold;">Side Margin Vertical Text:</label>
+    <textarea id="inSideTitle" class="small-input" placeholder="e.g. OFFICIAL CORRESPONDENCE">OFFICIAL CORRESPONDENCE</textarea>
+    
+    <label style="font-size:11px; font-weight:bold;">Letter Text Content:</label>
+    <textarea id="inBody" placeholder="Type your letter content here... Use *text* for bold. Use [patient] for name."></textarea>
+    
+    <label style="font-size:11px; font-weight:bold;">Vertical Alignment:</label>
+    <div class="align-toggle">
+        <input type="radio" id="alignTop" name="vAlign" value="top" checked onchange="sync()">
+        <label for="alignTop">TOP ALIGNED</label>
+        <input type="radio" id="alignCenter" name="vAlign" value="center" onchange="sync()">
+        <label for="alignCenter">CENTERED</label>
+    </div>
+    
+    <p style="font-size: 12px; color: #666; margin: 10px 0;">Practitioner: Dr Michael Wood</p>
+    <button onclick="window.print()">GENERATE & PRINT</button>
+</div>
+
+<div id="cert-page">
+    <div id="outSideTitle" class="vertical-label">OFFICIAL CORRESPONDENCE</div>
+    <div class="outer-border">
+        <div class="header-container">
+            <div class="header-left">
+                <img src="https://madmikewood.github.io/QLD_Logo.png" class="qld-logo">
+                <div id="outMainTitle" class="cert-title">HEALTH<br>SERVICES</div>
+                <div class="hospital-name">Queen Elizabeth II Jubilee Hospital</div>
+            </div>
+            <div class="header-right">
+                <div style="margin-bottom: 1mm; text-align: center; font-size: 9pt;">(Affix patient identification label here)</div>
+                <div style="white-space: nowrap;"><strong>Patient URN:</strong> <span id="outURN" class="data-text-label"></span></div>
+                <div style="white-space: nowrap;"><strong>Family name:</strong> <span id="outSur" class="data-text-label"></span></div>
+                <div style="white-space: nowrap;"><strong>Given name(s):</strong> <span id="outGiv" class="data-text-label"></span></div>
+                <div style="white-space: nowrap;"><strong>Address:</strong> <span id="outAddr" class="data-text-label"></span></div>
+                <div style="white-space: nowrap;">
+                    <strong>Date of birth:</strong> <span id="outDOB" class="data-text-label" style="max-width: 30%;"></span> 
+                    <span style="margin-left:4mm;"><strong>Sex:</strong> <span id="outSex" class="data-text" style="font-weight: bold;"></span></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="printMainContent" class="main-content top-aligned">
+            <div id="outBodyContent" style="white-space: pre-wrap;"></div>
+        </div>
+
+        <div class="practitioner-container">
+            <div class="practitioner-left">
+                <div>
+                    <div class="practitioner-name">Dr Michael Wood</div>
+                    <div class="practitioner-details">Emergency Department Registrar<br>Queen Elizabeth II Jubilee Hospital<br>Metro South Health</div>
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <strong>Signature:</strong>
+                    <div style="border-bottom: 1pt solid black; width: 60mm; margin-left: 2mm;"></div>
+                </div>
+            </div>
+            <div class="practitioner-right">
+                <div><strong>Provider Number:</strong><br><span class="data-text">6426974J</span></div>
+                <div style="display: flex; align-items: flex-end;"><strong>Date:</strong> <span id="outToday" class="data-text" style="margin-left: 2mm;"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('rawPaste').value = text;
+            parseViewerData(text);
+        } catch (err) { alert('Clipboard access denied.'); }
+    }
+
+    const parseViewerData = (text) => {
+        const urnMatch = text.match(/QEH:(\d+)/);
+        if (urnMatch) document.getElementById('inURN').value = urnMatch[1];
+        const nameMatch = text.match(/Name:\s+([^0-9\n]+)/);
+        if (nameMatch) {
+            let rawName = nameMatch[1].replace(/Mrs|Mr|Ms|Miss|Dr/g, '').trim();
+            if (rawName.includes(',')) {
+                let parts = rawName.split(',');
+                document.getElementById('inName').value = (parts[1].trim() + " " + parts[0].trim()).trim();
+            } else { document.getElementById('inName').value = rawName; }
+        }
+        const dobMatch = text.match(/Date of Birth:\s+(\d{1,2}-[A-Za-z]{3}-\d{4})/);
+        if (dobMatch) document.getElementById('inDOB').value = dobMatch[1];
+        const sexMatch = text.match(/Sex:\s+(Male|Female|Indeterminate|M|F|I)/i);
+        if (sexMatch) document.getElementById('inSex').value = sexMatch[1];
+        const addrMatch = text.match(/Residential Address:\s+([\s\S]*?)(?=Permanent|$)/);
+        if (addrMatch) { document.getElementById('inAddr').value = addrMatch[1].replace(/\n/g, ' ').replace(/\s\s+/g, ' ').trim(); }
+        sync();
+    };
+
+    const sync = () => {
+        const full = document.getElementById('inName').value || "[Patient Full Name]";
+        const names = full.trim().split(' ');
+        
+        document.getElementById('outURN').innerText = document.getElementById('inURN').value;
+        
+        if (names.length > 1 && document.getElementById('inName').value) {
+            document.getElementById('outSur').innerText = names[names.length - 1].toUpperCase();
+            document.getElementById('outGiv').innerText = names.slice(0, -1).join(' ');
+        } else {
+            document.getElementById('outSur').innerText = document.getElementById('inName').value ? full.toUpperCase() : '';
+            document.getElementById('outGiv').innerText = '';
+        }
+        
+        document.getElementById('outAddr').innerText = document.getElementById('inAddr').value;
+        document.getElementById('outDOB').innerText = document.getElementById('inDOB').value;
+        document.getElementById('outSex').innerText = document.getElementById('inSex').value;
+        
+        // Sync Custom Header Titles (Converts line breaks dynamically)
+        document.getElementById('outMainTitle').innerText = document.getElementById('inMainTitle').value;
+        document.getElementById('outSideTitle').innerText = document.getElementById('inSideTitle').value;
+        
+        let processedBody = document.getElementById('inBody').value;
+        processedBody = processedBody.replace(/\[patient\]/gi, full);
+        processedBody = processedBody.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+            
+        document.getElementById('outBodyContent').innerHTML = processedBody;
+        document.getElementById('outToday').innerText = new Date().toLocaleDateString('en-AU');
+        
+        const mainContentArea = document.getElementById('printMainContent');
+        if (document.getElementById('alignCenter').checked) {
+            mainContentArea.className = "main-content center-aligned";
+        } else {
+            mainContentArea.className = "main-content top-aligned";
+        }
+    };
+
+    document.getElementById('rawPaste').addEventListener('input', (e) => parseViewerData(e.target.value));
+    
+    // Wire up listeners to capture title updates instantly
+    document.querySelectorAll('.no-print input, .no-print textarea, #inBody').forEach(el => el.addEventListener('input', sync));
+    sync(); 
+</script>
+
+</body>
+</html>
